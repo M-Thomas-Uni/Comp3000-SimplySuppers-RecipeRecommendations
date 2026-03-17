@@ -1,0 +1,1 @@
+NODE_ENV=dev docker compose -d --build --remove_orphans

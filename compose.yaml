@@ -1,0 +1,48 @@
+services:
+  app-backend:
+    build: 
+      context:  ./app-backend
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      DB_PASSWORD: suppers_dbpassword
+      RECOMMENDER_PORT: 9001
+      BACKEND_PORT: 9000
+      FRONTEND_PORT: 3000
+    volumes:
+      - ./app-backend:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      - "82:9000"
+    depends_on:
+      suppers-db
+
+  app-frontend:
+    build:
+      context:  ./app-frontend
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      BACKEND_PORT: 9000
+      FRONTEND_PORT: 3000
+    volumes:
+      - ./app-frontend:/usr/src/app
+      - /usr/src/app/node_modules
+    ports:
+      -"81:3000"
+  
+  app-recommender:
+    build:
+      context:  ./app-recommender
+    environment:
+      PY_ENV: ${PY_ENV}
+      RECOMMENDER_PORT: 9001
+      BACKEND_PORT: 9000
+
+  suppers-db:
+    image:  mongo:7.0.3
+    volumes:
+      - ./suppers-db:docker-entrypoint-initdb.d:ro
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: suppers_dbpassword
