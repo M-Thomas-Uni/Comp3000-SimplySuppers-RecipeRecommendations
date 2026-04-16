@@ -1,12 +1,11 @@
-FROM python:3.12
+FROM node:22.9.0
+WORKDIR /usr/src/app
 
-WORKDIR /user/src/app
-
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements
+COPY package*.json ./
+RUN npm install
 
 COPY . .
 
-EXPOSE 9001
+EXPOSE 9000
 
-CMD ["python", "main.py"]
+CMD ["npm", "start"]

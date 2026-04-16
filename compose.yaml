@@ -3,7 +3,7 @@ services:
     build: 
       context:  ./app-backend
     environment:
-      PY_ENV: ${PY_ENV}
+      NODE_ENV: ${NODE_ENV}
       DB_PASSWORD: suppers_dbpassword #in prod this would be a env secret
       BACKEND_PORT: 9000
       FRONTEND_PORT: 3000
@@ -13,7 +13,7 @@ services:
     ports:
       - "82:9000"
     depends_on:
-      suppers-db
+      [suppers-db]
 
   app-frontend:
     build:
@@ -26,16 +26,22 @@ services:
       - ./app-frontend:/usr/src/app
       - /usr/src/app/node_modules
     ports:
-      -"81:3000"
+      - "81:3000"
   
   suppers-db:
-    image:  neo4j:latest
+    image: neo4j:latest
     volumes:
       - ./suppers-db/data:/data
       - ./suppers-db/import:/import
+    environment:
+        - NEO4J_AUTH_FILE=/run/secrets/neo4j_auth_file 
     ports:
       - "7474:7474"
       - "7687:7687"
-    environment:
-      NEO4j_AUTH=neo4j/suppers_dbpassword #in prod this would be a env secret
     restart: always
+    secrets:
+      - neo4j_auth_file
+
+secrets:
+  neo4j_auth_file:
+    file: ./secrets/neo4j_auth.txt
