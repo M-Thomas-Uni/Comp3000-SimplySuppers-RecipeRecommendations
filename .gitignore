@@ -181,3 +181,5 @@ MANIFEST
 
 package-lock.json
 package.json
+
+suppers-db/data/

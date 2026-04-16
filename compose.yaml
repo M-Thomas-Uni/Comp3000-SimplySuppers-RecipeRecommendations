@@ -44,4 +44,4 @@ services:
 
 secrets:
   neo4j_auth_file:
-    file: ./secrets/neo4j_auth.txt
+    file: ./secrets/neo4j_auth.txt #Normally this would not be put in the git repo, however this is not for production
