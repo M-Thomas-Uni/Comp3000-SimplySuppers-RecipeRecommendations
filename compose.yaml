@@ -4,7 +4,7 @@ services:
       context:  ./app-backend
     environment:
       NODE_ENV: ${NODE_ENV}
-      DB_PASSWORD: suppers_dbpassword #in prod this would be a env secret
+      NEO4J_AUTH_FILE: /run/secrets/neo4j_auth_file
       BACKEND_PORT: 9000
       FRONTEND_PORT: 3000
     volumes:
@@ -14,6 +14,8 @@ services:
       - "82:9000"
     depends_on:
       [suppers-db]
+    secrets:
+      - neo4j_auth_file
 
   app-frontend:
     build:
