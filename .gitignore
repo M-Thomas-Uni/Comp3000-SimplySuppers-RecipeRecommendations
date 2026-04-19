@@ -178,8 +178,6 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-
 package-lock.json
-package.json
 
 suppers-db/data/
