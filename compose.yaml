@@ -13,7 +13,8 @@ services:
     ports:
       - "82:9000"
     depends_on:
-      [suppers-db]
+      suppers-db:
+        condition: service_healthy
     secrets:
       - neo4j_auth_file
 
@@ -43,6 +44,12 @@ services:
     restart: always
     secrets:
       - neo4j_auth_file
+    healthcheck:
+      test: wget http://localhost:7474 || exit 1
+      interval: 1s
+      timeout: 5s
+      retries: 20
+      start_period: 1s
 
 secrets:
   neo4j_auth_file:
