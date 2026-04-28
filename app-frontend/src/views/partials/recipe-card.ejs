@@ -1,0 +1,36 @@
+<style>
+    .recipe-card {
+        border: 1px solid #ddd;
+        border-radius: 12px;
+        padding: 1rem;
+        background: #fff;
+}
+</style>
+
+<div class="recipe-card">
+    <div class="recipe-card-image">
+        <img src="PLACEHOLDER" alt="<%= recipe.title %>">
+    </div>
+    <h3 class="recipe-card-title">
+        <%= recipe.Name %>
+    </h3>
+
+    <div class="recipe-card-categories">
+        <p><strong>Category: <%= recipe.Category %></strong></p>
+    </div>"
+
+    <div class="recipe-card-keywords">
+        <% if (recipe.Keywords.length > 0) { %>
+             <p><strong>Keywords:</strong>
+                <%= recipe.Keywords.join(', ') %>
+            </p>
+        <% } %>
+    </div>
+
+    <div class="recipe-card-link">
+        <a href="<%= recipe.URL %>">
+            View Full Recipe
+        </a>
+    </div>
+
+</div>
