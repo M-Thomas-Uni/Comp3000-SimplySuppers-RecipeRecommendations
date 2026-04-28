@@ -7,7 +7,7 @@ app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 app.get('/', (req, res) => {
-  res.render('pages/base_layout', { title: 'Home', body_path: '../pages/index.ejs' });
+  res.render('base_layout', {title: "Simply Suppers", content: 'pages/index'});
 });
 
 app.listen(port, () => {
