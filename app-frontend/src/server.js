@@ -6,8 +6,33 @@ const port = 3000;
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-app.get('/', (req, res) => {
-  res.render('base_layout', {title: "Simply Suppers", content: 'pages/index'});
+app.use('/static', express.static('src/public'))
+
+app.get('/', async (req, res) => {
+  try {
+    console.log("Fetching top");
+    const response = await fetch(`http://app-backend:9000/toprecipes/21`);
+    console.log("recieved top");
+
+
+    if (response.status == 204) {
+      console.log("204 err");
+      return res.render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+
+    if (!response.ok) {
+      console.log("Resp not OK");
+      return res.status(500).render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+    console.log("Awaiting JSON");
+    const data = await response.json();
+    console.log("Rendering..")
+    res.render('base_layout', {title: "Simply Suppers", content: 'pages/home', top_recipes:data});
+    } catch (err) {
+      console.error("Error in index route: ", err);
+      res.sendStatus(500);
+    }
+
 });
 
 app.get('/test/recipe-card/:id', async (req, res) => {
