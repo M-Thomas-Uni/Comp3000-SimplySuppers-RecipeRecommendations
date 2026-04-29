@@ -150,4 +150,165 @@ async function get_top_20_recipes() {
     }
 }
 
+async function get_cbf_recommended(id, lim=20) {
+    let driver;
+    let session;
+
+    try {
+        const driver = neo4j.driver('neo4j://suppers-db:7687',
+            neo4j.auth.basic(n4j_user, n4j_pass)
+        )
+    
+        const session = driver.session({database: 'neo4j'});
+
+        const result = await session.run(`MATCH (m:SetupFlag {flag:"SuppersDB_Initialised"}) RETURN m`);
+        const initialised = result.records.length > 0;
+
+        if (initialised) {
+
+            const result = await session.run(`MATCH (m:SetupFlag {flag:"TF_Weights_And_Normals_Calculated"}) RETURN m`);
+            const weights_calculated = result.records.length > 0;
+            
+            if (weights_calculated) {
+                const results = await session.run(`
+                    //Content-Based Filtering
+
+                    //Get Subject
+                    MATCH (Rs:Recipe{RecipeID:"${id}"})
+                    WITH Rs
+                    //Get Other
+                    MATCH (Ro:Recipe)
+                    WHERE Ro.RecipeID<>Rs.RecipeID
+
+                    WITH Rs, Ro
+
+                    // ----- KEYWORD SIMILARITY -----
+
+                    //Get Keywords for each
+                    MATCH (Rs)-[:USES_KEYWORD]->(RsK:Keyword)
+                    WITH Rs, collect(RsK.Name) AS RsKeywords, Ro
+                    MATCH (Ro)-[:USES_KEYWORD]->(RoK:Keyword)
+                    WITH Rs, RsKeywords, Ro, collect(RoK.Name) AS RoKeywords
+
+                    //Get the Union of distinct keywords from the two
+                    WITH Rs, RsKeywords, Ro, RoKeywords, coll.distinct(RsKeywords + RoKeywords) AS UnionKeywords
+
+                    //For each keyword in the union..
+                    UNWIND UnionKeywords AS Fk //Focus Keyword
+
+                    //Get pre-computed TF-IDF weights
+                    OPTIONAL MATCH (Rs)-[r1:USES_KEYWORD]->(:Keyword {Name:Fk})
+                    OPTIONAL MATCH (Ro)-[r2:USES_KEYWORD]->(:Keyword {Name:Fk})
+
+                    //Either use the weight found, or 0.0
+                    WITH Rs, Ro, coalesce(r1.tf_weight, 0.0) AS rs_k_weights, coalesce(r2.tf_weight, 0.0) AS ro_k_weights
+
+                    //Collect into a combined vector
+                    WITH Rs, Ro, collect({rs:rs_k_weights, ro:ro_k_weights}) AS KwVector
+
+                    //Compute dot product
+                    WITH Rs, Ro, KwVector,
+                        reduce(dot = 0.0, x IN KwVector | dot + x.rs * x.ro)
+                        AS dot
+
+                    //Get pre-computed normals
+                    WITH Rs, Ro, dot,
+                        Rs.kw_normal AS norm_rs,
+                        Ro.kw_normal AS norm_ro
+
+                    //Compute cosine similarity
+                    WITH Rs, Ro,
+                        CASE
+                            WHEN norm_rs = 0 OR norm_ro = 0 THEN 0.0
+                            ELSE dot / (norm_rs * norm_ro)
+                        END AS KwCosineSim
+
+                    // ----- INGREDIENT SIMILARITY -----
+
+                    //Get Ingredients for each
+                    MATCH (Rs)-[:CONTAINS]->(RsI:Ingredient)
+                    WITH Rs, collect(RsI) AS RsIngredients, Ro, KwCosineSim
+                    MATCH (Ro)-[:CONTAINS]->(RoI:Ingredient)
+                    WITH Rs, RsIngredients, Ro, KwCosineSim, collect(RoI) AS RoIngredients
+
+                    //Get the Union of distinct ingredients from the two
+                    WITH Rs, RsIngredients, Ro, KwCosineSim, RoIngredients, coll.distinct(RsIngredients + RoIngredients) AS UnionIngredients
+
+                    //For each ingredient in the union..
+                    UNWIND UnionIngredients AS Fi //Focus Ingredient
+
+                    //Get pre-computed TF-IDF weights
+                    OPTIONAL MATCH (Rs)-[r1:CONTAINS]->(Fi)
+                    OPTIONAL MATCH (Ro)-[r2:CONTAINS]->(Fi)
+
+                    //Either use the weight found, or 0.0
+                    WITH Rs, Ro, KwCosineSim, coalesce(r1.tf_weight, 0.0) AS rs_i_weights, coalesce(r2.tf_weight, 0.0) AS ro_i_weights
+
+                    //Collect into a combined vector
+                    WITH Rs, Ro, KwCosineSim, collect({rs:rs_i_weights, ro:ro_i_weights}) AS IwVector
+
+                    //Compute dot product
+                    WITH Rs, Ro, KwCosineSim, IwVector,
+                        reduce(dot = 0.0, x IN IwVector | dot + x.rs * x.ro)
+                        AS dot
+
+                    //Get pre-computed normals
+                    WITH Rs, Ro, KwCosineSim, dot,
+                        Rs.iw_normal AS norm_rs,
+                        Ro.iw_normal AS norm_ro
+
+                    //Compute cosine similarity
+                    WITH Rs, Ro, KwCosineSim,
+                        CASE
+                            WHEN norm_rs = 0 OR norm_ro = 0 THEN 0.0
+                            ELSE dot / (norm_rs * norm_ro)
+                        END AS IwCosineSim
+
+                    WITH Rs, Ro, KwCosineSim + IwCosineSim AS CosineSim
+                    MATCH (Ro)-[:CATEGORY_OF]->(cat:Category)
+                    WITH Rs, Ro, CosineSim, cat.Name AS Category
+                    MATCH (Ro)-[:USES_KEYWORD]->(kw:Keyword)
+                    RETURN Rs, Ro.Name AS Name, Category, collect(kw) AS Keywords, Ro.URL AS URL, Ro.RecipeID AS ID, CosineSim ORDER BY CosineSim DESC LIMIT ${lim}
+                    `);
+
+                if (results.records.length > 0) {
+                    let recipe_list = []
+                    results.records.forEach(element => {
+                        recipe_list.push(
+                            {'recipe': {
+                                Name: element.get("Name"),
+                                Category: element.get("Category"),
+                                Keywords: element.get("Keywords"),
+                                URL: element.get("URL"),
+                                ID: element.get("ID")
+                            },
+                            'CosineSimilarity': element.get("CosineSim")
+                            });
+                    });
+
+                    return { 'Successful?':true, 'err': 'null', 'code':200, 'recipes': recipe_list}
+                } else {
+                    return { 'Successful?':false, 'err': 'No results found', 'code':204, 'recipe':null}
+                }
+            } else {
+                console.log("Weight calculation test returning False");
+                return { 'Successful?':false, 'err': 'Weights not calculated (or marker not set.)', 'code':503, 'recipe':null}
+            }
+
+        } else {
+            console.log("Initialisation test returning False");
+            return { 'Successful?':false, 'err': 'DB  data not initialised (or marker not set.)', 'code':503, 'recipe':null}
+        }
+
+    } catch (err) {
+        console.log("Recipe search failing due to error:")
+        console.error(err);
+        return { 'Successful?':false, 'err': err};
+    } finally {
+        if (session) await session.close();
+        if (driver) await driver.close();
+    }
+}
+
+
 module.exports = { test_ready, get_recipe_by_id, get_top_20_recipes };
