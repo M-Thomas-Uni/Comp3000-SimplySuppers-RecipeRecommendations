@@ -88,7 +88,7 @@ async function get_recipe_by_id(id) {
     }
 }
 
-async function get_top_20_recipes() {
+async function get_top_recipes(lim=20) {
     let driver;
     let session;
 
@@ -112,7 +112,7 @@ async function get_top_20_recipes() {
                                         MATCH (recipe)-[:CATEGORY_OF]->(c:Category)
                                         WITH recipe, c as category, SumRating, NumRatings, AvgRating
                                         MATCH (recipe)-[:USES_KEYWORD]->(k:Keyword)
-                                        RETURN DISTINCT recipe.Name as Name, category.Name as Category, collect(k.Name) as Keywords, recipe.URL as URL, recipe.RecipeID AS ID, SumRating, NumRatings, AvgRating ORDER BY AvgRating DESC, SumRating DESC, NumRatings DESC, Name ASC LIMIT 20
+                                        RETURN DISTINCT recipe.Name as Name, category.Name as Category, collect(k.Name) as Keywords, recipe.URL as URL, recipe.RecipeID AS ID, SumRating, NumRatings, AvgRating ORDER BY AvgRating DESC, SumRating DESC, NumRatings DESC, Name ASC LIMIT ${lim}
                                         `)
 
             if (results.records.length > 0) {
@@ -270,7 +270,7 @@ async function get_cbf_recommended(id, lim=20) {
                     MATCH (Ro)-[:CATEGORY_OF]->(cat:Category)
                     WITH Rs, Ro, CosineSim, cat.Name AS Category
                     MATCH (Ro)-[:USES_KEYWORD]->(kw:Keyword)
-                    RETURN Rs, Ro.Name AS Name, Category, collect(kw) AS Keywords, Ro.URL AS URL, Ro.RecipeID AS ID, CosineSim ORDER BY CosineSim DESC LIMIT ${lim}
+                    RETURN Rs, Ro.Name AS Name, Category, collect(kw.Name) AS Keywords, Ro.URL AS URL, Ro.RecipeID AS ID, CosineSim ORDER BY CosineSim DESC LIMIT ${lim}
                     `);
 
                 if (results.records.length > 0) {
@@ -314,4 +314,4 @@ async function get_cbf_recommended(id, lim=20) {
 }
 
 
-module.exports = { test_ready, get_recipe_by_id, get_top_20_recipes, get_cbf_recommended };
+module.exports = { test_ready, get_recipe_by_id, get_top_recipes, get_cbf_recommended };
