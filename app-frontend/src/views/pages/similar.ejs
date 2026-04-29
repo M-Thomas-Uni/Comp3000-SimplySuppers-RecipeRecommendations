@@ -1,7 +1,3 @@
-<h1>Recipes similar to <%= subject.Name %></h1>
+<h3>Recipes similar to <%= subject.Name %></h3>
 
-<div class="recipe-grid">
-    <% recipes.forEach(r => { %>
-        <%- include('../partials/recipe-card', {recipe: r.recipe}) %>
-    <% }) %>
-</div>
+<%- include('../partials/recipe-card-carousel', {recipes: recipes}) %>

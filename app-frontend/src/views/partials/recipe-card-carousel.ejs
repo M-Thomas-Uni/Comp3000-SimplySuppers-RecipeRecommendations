@@ -1,0 +1,44 @@
+<style>
+#top_recipes_carousel {
+    position: relative;
+}
+
+#top_recipes_carousel .carousel-control-prev,
+#top_recipes_carousel .carousel-control-next {
+    width: 5%;
+    z-index: 5;
+}
+
+#top_recipes_carousel .carousel-control-prev {
+    left: -0.75rem;
+}
+
+#top_recipes_carousel .carousel-control-next {
+    right: -0.75rem;
+}
+</style>
+
+<div id="top_recipes_carousel" class="carousel slide border rounded p-3" data-bs-ride="carousel">
+    <div class="carousel-inner">
+        <% for (let i = 0; i < recipes.length; i += 3) { %>
+            <div class="carousel-item <%= i == 0 ? 'active' : '' %>">
+                <div class="row g-3">
+                    <% recipes.slice(i, i + 3).forEach( r=> { %>
+                        <div class="col-md-4">
+                            <%- include('../partials/recipe-card', {recipe: r.recipe}) %>
+                        </div>
+                    <% }) %>
+                </div>
+            </div>
+        <% } %>
+    </div>
+
+    <button class="carousel-control-prev" type="button" data-bs-target="#top_recipes_carousel" data-bs-slide="prev">
+        <span class="carousel-control-prev-icon"></span>
+    </button>
+
+    <button class="carousel-control-next" type="button" data-bs-target="#top_recipes_carousel" data-bs-slide="next">
+        <span class="carousel-control-next-icon"></span>
+    </button>
+
+</div>
