@@ -31,6 +31,27 @@ app.get('/test/recipe-card/:id', async (req, res) => {
     }
 });
 
+app.get('/similarto/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const response = await fetch(`http://app-backend:9000/similarto/${id}`);
+
+    if (response.status == 204) {
+      return res.render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+
+    if (!response.ok) {
+      return res.status(500).render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+
+    const data = await response.json();
+    res.render('base_layout', {title: "Simply Suppers", content: 'pages/similar', subject:data['subject'], recipes: data['recipes']});
+    } catch (err) {
+      console.error("Error in test recipe-card route: ", err);
+      res.sendStatus(500);
+    }
+});
+
 app.listen(port, () => {
   console.log(`Frontend server listening on port: ${port}`);
 }); 

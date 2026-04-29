@@ -1,6 +1,6 @@
 const express = require('express');
 const { neo4j_startup, calculate_tf_weights_and_normals } = require('./neo4j_setup');
-const { test_ready, get_recipe_by_id, get_top_20_recipes } = require('./neo4j_operations');
+const { test_ready, get_recipe_by_id, get_top_20_recipes, get_cbf_recommended } = require('./neo4j_operations');
 
 const app = express();
 const port = 9000;
@@ -59,6 +59,31 @@ app.get('/recipe/top20', async (req, res) => {
     }
   }  catch (err) {
         console.error(`Error fetching top 20 recipes:`, err);
+        res.sendStatus(500);
+  }
+})
+
+app.get('/similarto/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const result = await get_cbf_recommended(id, 20);
+    const subject = await get_recipe_by_id(id);
+
+    if (result['code'] == 200 && subject['code'] == 200) {
+      if (result['recipes'] && subject['recipe']) {
+        console.log("Returning recommendations")
+        return res.json({
+          'subject': subject['recipe'],
+          'recipes': result['recipes']});
+      }
+    } else if (result['code'] == 204 || subject['code'] == 204) {
+        console.log(`Status 204, not found. Recommender result code: ${result['code']} - Subject result code: ${subject['code']}`)
+        return res.sendStatus(204);
+    } else {
+      res.sendStatus(503);
+    }
+  }  catch (err) {
+        console.error(`Error fetching recipes (${req.params.id}):`, err);
         res.sendStatus(500);
   }
 })

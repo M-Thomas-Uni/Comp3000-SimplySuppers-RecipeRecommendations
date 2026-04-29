@@ -1,0 +1,12 @@
+<h1>Recipes similar to <%= subject.Name %></h1>
+
+<div class="recipe-grid">
+    <% recipes.forEach(r => { %>
+        <a href="/similarto/<%= r.recipe.ID %>" class="recipe-card-link">
+            <div class="recipe-card">
+                <h3><%= r.recipe.Name %></h3>
+                <p>Similarity: <%= r.CosineSimilarity %></p>
+            </div>
+        </a>
+    <% }) %>
+</div>

@@ -59,6 +59,7 @@ async function get_recipe_by_id(id) {
 
             if (results.records.length > 0) {
                 const recipe = results.records[0];
+                console.log("Found recipe");
                 return { 'Successful?':true, 'err': 'null', 'code':200,
                     'recipe': {
                         Name: recipe.get("Name"),
@@ -68,6 +69,7 @@ async function get_recipe_by_id(id) {
                     }
                 }
             } else {
+                console.log(`No recipes found with id: ${id}`);
                 return { 'Successful?':false, 'err': 'No results found', 'code':204, 'recipe':null}
 
             }
@@ -288,6 +290,7 @@ async function get_cbf_recommended(id, lim=20) {
 
                     return { 'Successful?':true, 'err': 'null', 'code':200, 'recipes': recipe_list}
                 } else {
+                    console.log(`No recipes recommended for recipe with id: ${id}`);
                     return { 'Successful?':false, 'err': 'No results found', 'code':204, 'recipe':null}
                 }
             } else {
@@ -311,4 +314,4 @@ async function get_cbf_recommended(id, lim=20) {
 }
 
 
-module.exports = { test_ready, get_recipe_by_id, get_top_20_recipes };
+module.exports = { test_ready, get_recipe_by_id, get_top_20_recipes, get_cbf_recommended };
