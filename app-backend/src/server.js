@@ -1,6 +1,6 @@
 const express = require('express');
 const { neo4j_startup, calculate_tf_weights_and_normals } = require('./neo4j_setup');
-const { test_ready, get_recipe_by_id, get_top_20_recipes, get_cbf_recommended } = require('./neo4j_operations');
+const { test_ready, get_recipe_by_id, get_top_recipes, get_cbf_recommended } = require('./neo4j_operations');
 
 const app = express();
 const port = 9000;
@@ -47,18 +47,19 @@ app.get('/recipe/:id', async (req, res) => {
   }
 })
 
-app.get('/recipe/top20', async (req, res) => {
+app.get('/toprecipes/:lim', async (req, res) => {
   try {
-    const result = await get_top_20_recipes;
+    const lim = req.params.lim;
+    const result = await get_top_recipes(lim);
     if (result['code'] == 200) {
-       return res.json(result['recipe'])
+       return res.json(result['recipes'])
     } else if (result['code'] == 204) {
         return res.sendStatus(204);
     } else {
       res.sendStatus(503);
     }
   }  catch (err) {
-        console.error(`Error fetching top 20 recipes:`, err);
+        console.error(`Error fetching top recipes:`, err);
         res.sendStatus(500);
   }
 })
