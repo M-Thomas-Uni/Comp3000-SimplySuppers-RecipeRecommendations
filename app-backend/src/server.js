@@ -1,11 +1,12 @@
 const express = require('express');
-const {neo4j_startup} = require('./neo4j_setup');
+const { neo4j_startup, calculate_tf_weights_and_normals } = require('./neo4j_setup');
 const { test_ready, get_recipe_by_id, get_top_20_recipes } = require('./neo4j_operations');
 
 const app = express();
 const port = 9000;
 
 neo4j_startup();
+calculate_tf_weights_and_normals();
 
 app.get('/', (req, res) => {
   res.send('Test get');

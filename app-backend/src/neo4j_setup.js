@@ -118,4 +118,87 @@ async function neo_startup() {
     }
 }
 
-module.exports = { neo4j_startup: neo_startup};
+async function calculate_tf_weights_and_normals() {
+    let driver;
+    let session;
+
+    try {
+        const driver = neo4j.driver('neo4j://suppers-db:7687',
+            neo4j.auth.basic(n4j_user, n4j_pass)
+        )
+    
+        const session = driver.session({database: 'neo4j'});
+
+        const result = await session.run(`MATCH (m:SetupFlag {flag:"SuppersDB_Initialised"}) RETURN m`);
+        const initialised = result.records.length > 0;
+
+        if (initialised) {
+            console.log("Starting pre-calculations");
+            console.log("..IDF for Keywords");
+            await session.run(`
+                 //Compute IDF for KEywords
+                MATCH (r:Recipe)
+                WITH count(r) AS RecipeCount
+
+                MATCH (k:Keyword)<-[:USES_KEYWORD]-(r2:Recipe)
+                WITH k, RecipeCount, count(r2) AS doc_freq
+                SET k.idf = log(RecipeCount * 1.0 / doc_freq)
+                `);
+            console.log("COMPLETE\n..IDF for Ingredients");
+            await session.run(`
+                //and ingredients
+                MATCH (r:Recipe)
+                WITH count(r) AS RecipeCount
+
+                MATCH (i:Ingredient)<-[:CONTAINS]-(r2:Recipe)
+                WITH i, RecipeCount, count(r2) AS doc_freq
+                SET i.idf = log(RecipeCount * 1.0 / doc_freq)
+                `);
+            console.log("COMPLETE\n..TF for Recipe Keywords");
+            await session.run(`
+                //Compute TF for Recipe -> Keyword
+                MATCH (r:Recipe)-[rel:USES_KEYWORD]->(k:Keyword)
+                WITH r, count(rel) AS kCount, rel, k
+                SET rel.tf_weight = (1.0 / kCount) * k.idf
+                `);
+            console.log("COMPLETE\n..TF for Recipe Ingredients");
+            await session.run(`
+                //again, for ingredients
+                MATCH (r:Recipe)-[rel:CONTAINS]->(i:Ingredient)
+                WITH r, count(rel) AS iCount, rel, i
+                SET rel.tf_weight = (1.0 / iCount) * i.idf
+                `);
+            console.log("COMPLETE\n..Calculating Recipe Normals for Keyword vectors");
+            await session.run(`
+                //Keywords
+                MATCH (r:Recipe)-[rel:USES_KEYWORD]->(:Keyword)
+                WITH r, sum(rel.tf_weight^2) AS sum_squares
+                SET r.kw_normal = sqrt(sum_squares)
+                `);
+            console.log("COMPLETE\n..Calculating Recipe Normals for Ingredient vectors");
+            await session.run(`
+                //Ingredients
+                MATCH (r:Recipe)-[rel:CONTAINS]->(:Ingredient)
+                WITH r, sum(rel.tf_weight^2) AS sum_squares
+                SET r.iw_normal = sqrt(sum_squares)
+                `);
+
+            console.log("COMPLETE\nSetting completion flag");
+            await session.run(`MERGE (m:SetupFlag {flag:"TF_Weights_And_Normals_Calculated"})`);
+            
+        } else {
+            console.log("Initialisation test returning False");
+            return { 'Successful?':false, 'err': 'DB  data not initialised (or marker not set.)', 'code':503, 'recipe':null}
+        }
+
+    } catch (err) {
+        console.log("Recipe search failing due to error:")
+        console.error(err);
+        return { 'Successful?':false, 'err': err};
+    } finally {
+        if (session) await session.close();
+        if (driver) await driver.close();
+    }
+}
+
+module.exports = { neo4j_startup: neo_startup, calculate_tf_weights_and_normals:calculate_tf_weights_and_normals};
