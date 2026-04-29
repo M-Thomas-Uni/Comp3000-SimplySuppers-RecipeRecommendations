@@ -1,6 +1,6 @@
 const express = require('express');
 const {neo4j_startup} = require('./neo4j_setup');
-const { test_ready, get_recipe_by_id } = require('./neo4j_operations');
+const { test_ready, get_recipe_by_id, get_top_20_recipes } = require('./neo4j_operations');
 
 const app = express();
 const port = 9000;
@@ -12,14 +12,18 @@ app.get('/', (req, res) => {
 });
 
 app.get('/healthcheck', async (req, res) => {
-  const db_conn_test = await test_ready();
+  try {
+    const result = await test_ready();
 
-  if (db_conn_test['Successful?']) {
-    console.log("Healtcheck returning 200");
-    res.sendStatus(200);
-  } else {
-    console.log("Healtcheck returning 503");
-    res.sendStatus(503);
+    if (result['code'] == 200) {
+      console.log("Healthcheck returning 200");
+      res.sendStatus(200);
+    } else {
+      res.sendStatus(503);
+    }
+  }  catch (err) {
+        console.error(`Error performing healthcheck:`, err);
+        res.sendStatus(500);
   }
 })
 
@@ -32,13 +36,29 @@ app.get('/recipe/:id', async (req, res) => {
         return res.json(result['recipe'])
       }
     } else if (result['code'] == 204) {
-        return res.status(204).json(null);
+        return res.sendStatus(204);
     } else {
       res.sendStatus(503);
     }
   }  catch (err) {
         console.error(`Error fetching recipe (${req.params.id}):`, err);
-        res.status(500).json({ error: "Internal Server Error" });
+        res.sendStatus(500);
+  }
+})
+
+app.get('/recipe/top20', async (req, res) => {
+  try {
+    const result = await get_top_20_recipes;
+    if (result['code'] == 200) {
+       return res.json(result['recipe'])
+    } else if (result['code'] == 204) {
+        return res.sendStatus(204);
+    } else {
+      res.sendStatus(503);
+    }
+  }  catch (err) {
+        console.error(`Error fetching top 20 recipes:`, err);
+        res.sendStatus(500);
   }
 })
 
