@@ -4,6 +4,15 @@
         <%= recipe.Name %>
     </h3>
 
+    <div class="recipe-card-image">
+        <img 
+            src="<%= recipe.Image_URL 
+                    ? recipe.Image_URL 
+                    : '/static/images/placeholder.png' %>" 
+            alt="<%= recipe.Name %>"
+        >
+    </div>
+
     <div class="recipe-card-actions">
         <a href="/similarto/<%= recipe.ID %>" class="recipe-card-button">
             See similar recipes

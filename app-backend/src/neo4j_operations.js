@@ -54,7 +54,7 @@ async function get_recipe_by_id(id) {
                                         MATCH (SelectedRecipe)-[:CATEGORY_OF]->(c:Category)
                                         WITH SelectedRecipe, c as Category
                                         MATCH (SelectedRecipe)-[:USES_KEYWORD]->(k:Keyword)
-                                        RETURN DISTINCT SelectedRecipe.Name as Name, Category.Name as Category, collect(k.Name) as Keywords, SelectedRecipe.URL as URL
+                                        RETURN DISTINCT SelectedRecipe.Name as Name, Category.Name as Category, collect(k.Name) as Keywords, SelectedRecipe.URL as URL,  SelectedRecipe.Image_URL as Image_URL, SelectedRecipe.RecipeID AS RecipeID
                                         `)
 
             if (results.records.length > 0) {
@@ -62,10 +62,12 @@ async function get_recipe_by_id(id) {
                 console.log("Found recipe");
                 return { 'Successful?':true, 'err': 'null', 'code':200,
                     'recipe': {
+                        ID: recipe.get("RecipeID"),
                         Name: recipe.get("Name"),
                         Category: recipe.get("Category"),
                         Keywords: recipe.get("Keywords"),
-                        URL: recipe.get("URL")
+                        URL: recipe.get("URL"),
+                        Image_URL: recipe.get("Image_URL")
                     }
                 }
             } else {

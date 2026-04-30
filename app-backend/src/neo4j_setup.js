@@ -20,7 +20,7 @@ async function neo_startup() {
         } else {
             console.log("Database not initialised. Creating indexes then loading data.");
 
-            await session.run(`CREATE CONSTRAINT RecipeID IF NOT EXISTS FOR (r:Recipe) REQUIRE r.RecipeID IS UNIQUE;`);
+            await session.run(`CREATE CONSTRAINT RecipeID IF NOT EXISTS FOR (r:Recipe) REQUIRE r.RecipeID IS UNIQUE, r.RecipeID IS :: INTEGER;`);
             await session.run(`CREATE CONSTRAINT IngredientID IF NOT EXISTS FOR (i:Ingredient) REQUIRE i.IngredientID IS UNIQUE;`);
             await session.run(`CREATE CONSTRAINT ReviewID IF NOT EXISTS FOR (r:Review) REQUIRE r.ReviewID IS UNIQUE;`);
             await session.run(`CREATE CONSTRAINT ReviewAuthorID IF NOT EXISTS FOR (reva:ReviewAuthor) REQUIRE reva.AuthorID IS UNIQUE;`);
@@ -104,6 +104,17 @@ async function neo_startup() {
 
                                 } IN TRANSACTIONS OF 5000 ROWS`);
             console.log("Loaded Reviews.csv");
+
+            await session.run(`LOAD CSV WITH HEADERS FROM "file:///recipe_images.csv" AS row
+                                WITH row
+                                CALL (row) {
+                                WITH row
+                                WITH row, row.RecipeId AS id, row.Images AS URL
+                                WHERE id<>"" AND id IS NOT NULL
+                                MATCH(recipe:Recipe{RecipeID:id})
+                                WHERE recipe IS NOT NULL
+                                SET recipe.Image_URL = URL
+                                } IN TRANSACTIONS OF 5000 ROWS`)
 
             //Loaded data, setting flag
             await session.run(`MERGE (m:SetupFlag {flag:"SuppersDB_Initialised"})`);
