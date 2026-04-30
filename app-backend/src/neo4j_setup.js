@@ -105,6 +105,7 @@ async function neo_startup() {
                                 } IN TRANSACTIONS OF 5000 ROWS`);
             console.log("Loaded Reviews.csv");
 
+            console.log("Adding Images from Recipe_Images.csv");
             await session.run(`LOAD CSV WITH HEADERS FROM "file:///recipe_images.csv" AS row
                                 WITH row
                                 CALL (row) {
@@ -114,7 +115,25 @@ async function neo_startup() {
                                 MATCH(recipe:Recipe{RecipeID:id})
                                 WHERE recipe IS NOT NULL
                                 SET recipe.Image_URL = URL
-                                } IN TRANSACTIONS OF 5000 ROWS`)
+                                } IN TRANSACTIONS OF 5000 ROWS`);
+            console.log("Loaded Recipe_Images.csv");
+
+            console.log("Creating Category and Keyword IDs");
+            await session.run(`MATCH (c:Category)
+                                WITH c ORDER BY c.name
+                                WITH collect(c) AS cats
+                                UNWIND range(0, size(cats)-1) AS i
+                                WITH cats[i] AS c, i + 1 AS newID
+                                SET c.CategoryID = toString(newID);`);
+
+            await session.run(`MATCH (k:Keyword)
+                                WITH k ORDER BY k.name
+                                WITH collect(k) AS keys
+                                UNWIND range(0, size(keys)-1) AS i
+                                WITH keys[i] AS k, i + 1 AS newID
+                                SET k.KeywordID = toString(newID);`);
+            
+            console.log("Complete, setting flag");
 
             //Loaded data, setting flag
             await session.run(`MERGE (m:SetupFlag {flag:"SuppersDB_Initialised"})`);

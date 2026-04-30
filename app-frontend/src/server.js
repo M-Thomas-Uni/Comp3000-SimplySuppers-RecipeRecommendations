@@ -11,7 +11,7 @@ app.use('/static', express.static('src/public'))
 app.get('/', async (req, res) => {
   try {
     console.log("Fetching top");
-    const response = await fetch(`http://app-backend:9000/toprecipes/21`);
+    const response = await fetch(`http://app-backend:9000/top/recipes/21`);
     console.log("recieved top");
 
 
@@ -33,6 +33,60 @@ app.get('/', async (req, res) => {
       res.sendStatus(500);
     }
 
+});
+
+app.get('/top/category/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    console.log("Fetching top");
+    const response = await fetch(`http://app-backend:9000/top/category/${id}/21`);
+    console.log("recieved top");
+
+
+    if (response.status == 204) {
+      console.log("204 err");
+      return res.render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+
+    if (!response.ok) {
+      console.log("Resp not OK");
+      return res.status(500).render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+    console.log("Awaiting JSON");
+    const data = await response.json();
+    console.log("Rendering..")
+    res.render('base_layout', {title: "Simply Suppers", content: 'pages/topcats', 'CategoryName':data.CategoryName, recipes:data.recipes});
+    } catch (err) {
+      console.error("Error in index route: ", err);
+      res.sendStatus(500);
+    }
+});
+
+app.get('/top/keyword/:id', async (req, res) => {
+  try {
+    const id = req.params.id;
+    console.log("Fetching top");
+    const response = await fetch(`http://app-backend:9000/top/keyword/${id}/21`);
+    console.log("recieved top");
+
+
+    if (response.status == 204) {
+      console.log("204 err");
+      return res.render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+
+    if (!response.ok) {
+      console.log("Resp not OK");
+      return res.status(500).render('base_layout', {title: "Simply Suppers", content: 'partials/404'});
+    }
+    console.log("Awaiting JSON");
+    const data = await response.json();
+    console.log("Rendering..")
+    res.render('base_layout', {title: "Simply Suppers", content: 'pages/topkeyw', 'KeywordName':data.KeywordName, recipes:data.recipes});
+    } catch (err) {
+      console.error("Error in index route: ", err);
+      res.sendStatus(500);
+    }
 });
 
 app.get('/test/recipe-card/:id', async (req, res) => {

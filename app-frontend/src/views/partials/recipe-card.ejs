@@ -19,12 +19,22 @@
         </a>
 
         <div class="recipe-card-categories">
-            <p><strong>Category:</strong> <%= recipe.Category %></p>
+            <p><strong>Category:</strong> 
+                <a href="/top/category/<%= recipe.CategoryID %>">
+                    <%= recipe.Category %>
+                </a> 
+            </p>
         </div>
 
         <div class="recipe-card-keywords">
             <% if (recipe.Keywords.length > 0) { %>
-                <p><strong>Keywords:</strong> <%= recipe.Keywords.join(', ') %></p>
+                <p><strong>Keywords:</strong>
+                <% recipe.Keywords.forEach(k => { %>
+                    <a href="/top/keyword/<%= k.KeywordID %>" class="keyword-link">
+                        <%= k.Name %>
+                    </a>
+                <% }) %>
+                </p>
             <% } %>
         </div>
 

@@ -54,7 +54,7 @@ async function get_recipe_by_id(id) {
                                         MATCH (SelectedRecipe)-[:CATEGORY_OF]->(c:Category)
                                         WITH SelectedRecipe, c as Category
                                         MATCH (SelectedRecipe)-[:USES_KEYWORD]->(k:Keyword)
-                                        RETURN DISTINCT SelectedRecipe.Name as Name, Category.Name as Category, collect(k.Name) as Keywords, SelectedRecipe.URL as URL,  SelectedRecipe.Image_URL as Image_URL, SelectedRecipe.RecipeID AS RecipeID
+                                        RETURN DISTINCT SelectedRecipe.Name as Name, Category.Name as Category, Category.CategoryID as CategoryID, collect({Name:k.Name, KeywordID:k.KeywordID}) as Keywords, collect(k.KeywordID) as KeywordIDs, SelectedRecipe.URL as URL,  SelectedRecipe.Image_URL as Image_URL, SelectedRecipe.RecipeID AS RecipeID
                                         `)
 
             if (results.records.length > 0) {
@@ -65,6 +65,7 @@ async function get_recipe_by_id(id) {
                         ID: recipe.get("RecipeID"),
                         Name: recipe.get("Name"),
                         Category: recipe.get("Category"),
+                        CategoryID: recipe.get("CategoryID"),
                         Keywords: recipe.get("Keywords"),
                         URL: recipe.get("URL"),
                         Image_URL: recipe.get("Image_URL")
@@ -114,7 +115,7 @@ async function get_top_recipes(lim=20) {
                                         MATCH (recipe)-[:CATEGORY_OF]->(c:Category)
                                         WITH recipe, c as category, SumRating, NumRatings, AvgRating
                                         MATCH (recipe)-[:USES_KEYWORD]->(k:Keyword)
-                                        RETURN DISTINCT recipe.Name as Name, category.Name as Category, collect(k.Name) as Keywords, recipe.URL as URL, recipe.RecipeID AS ID, SumRating, NumRatings, AvgRating ORDER BY AvgRating DESC, SumRating DESC, NumRatings DESC, Name ASC LIMIT ${lim}
+                                        RETURN DISTINCT recipe.Name as Name, category.Name as Category, category.CategoryID as CategoryID, collect({Name:k.Name, KeywordID:k.KeywordID}) as Keywords, recipe.URL as URL, recipe.RecipeID AS ID, SumRating, NumRatings, AvgRating ORDER BY AvgRating DESC, SumRating DESC, NumRatings DESC, Name ASC LIMIT ${lim}
                                         `)
 
             if (results.records.length > 0) {
@@ -124,6 +125,7 @@ async function get_top_recipes(lim=20) {
                         {'recipe': {
                             Name: element.get("Name"),
                             Category: element.get("Category"),
+                            CategoryID: element.get("CategoryID"),
                             Keywords: element.get("Keywords"),
                             URL: element.get("URL"),
                             ID: element.get("ID")
@@ -153,6 +155,137 @@ async function get_top_recipes(lim=20) {
         if (driver) await driver.close();
     }
 }
+
+async function get_top_in_cat(id, lim=20) {
+    let driver;
+    let session;
+
+    try {
+        const driver = neo4j.driver('neo4j://suppers-db:7687',
+            neo4j.auth.basic(n4j_user, n4j_pass)
+        )
+    
+        const session = driver.session({database: 'neo4j'});
+
+        const result = await session.run(`MATCH (m:SetupFlag {flag:"SuppersDB_Initialised"}) RETURN m`);
+        const initialised = result.records.length > 0;
+
+        if (initialised) {
+
+                    const results = await session.run(`MATCH (rec:Recipe)-[:CATEGORY_OF]->(cat:Category{CategoryID:"${id}"})
+                                        WITH rec AS recipe
+                                        MATCH (rev:Review)-[:REVIEWS]->(recipe)
+                                        WITH recipe, sum(toInteger(rev.Rating)) AS SumRating, count(rev) AS NumRatings
+                                        WITH recipe, SumRating, NumRatings, SumRating / NumRatings AS AvgRating
+                                        MATCH (recipe)-[:CATEGORY_OF]->(c:Category)
+                                        WITH recipe, c as category, SumRating, NumRatings, AvgRating
+                                        MATCH (recipe)-[:USES_KEYWORD]->(k:Keyword)
+                                        RETURN DISTINCT recipe.Name as Name, category.Name as Category, category.CategoryID as CategoryID, collect({Name:k.Name, KeywordID:k.KeywordID}) as Keywords, recipe.URL as URL, recipe.RecipeID AS ID, SumRating, NumRatings, AvgRating ORDER BY AvgRating DESC, SumRating DESC, NumRatings DESC, Name ASC LIMIT ${lim}
+                                        `)
+
+            if (results.records.length > 0) {
+                let recipe_list = []
+                results.records.forEach(element => {
+                    recipe_list.push(
+                        {'recipe': {
+                            Name: element.get("Name"),
+                            Category: element.get("Category"),
+                            CategoryID: element.get("CategoryID"),
+                            Keywords: element.get("Keywords"),
+                            URL: element.get("URL"),
+                            ID: element.get("ID")
+                        },
+                        'SumRating': element.get("SumRating"),
+                        'NumRatings': element.get("NumRatings"),
+                        'AvgRating': element.get("AvgRating")
+                        });
+                });
+
+                return { 'Successful?':true, 'err': 'null', 'code':200, 'CategoryName':results.records[0].get('Category'), 'recipes': recipe_list}
+            } else {
+                return { 'Successful?':false, 'err': 'No results found', 'code':204, 'recipe':null}
+
+            }
+        } else {
+            console.log("Initialisation test returning False");
+            return { 'Successful?':false, 'err': 'DB  data not initialised (or marker not set.)', 'code':503, 'recipe':null}
+        }
+
+    } catch (err) {
+        console.log("Recipe search failing due to error:")
+        console.error(err);
+        return { 'Successful?':false, 'err': err};
+    } finally {
+        if (session) await session.close();
+        if (driver) await driver.close();
+    }
+}
+
+async function get_top_in_keyw(id, lim=20) {
+    let driver;
+    let session;
+
+    try {
+        const driver = neo4j.driver('neo4j://suppers-db:7687',
+            neo4j.auth.basic(n4j_user, n4j_pass)
+        )
+    
+        const session = driver.session({database: 'neo4j'});
+
+        const result = await session.run(`MATCH (m:SetupFlag {flag:"SuppersDB_Initialised"}) RETURN m`);
+        const initialised = result.records.length > 0;
+
+        if (initialised) {
+
+                    const results = await session.run(`MATCH (rec:Recipe)-[:USES_KEYWORD]->(keyw:Keyword{KeywordID:"${id}"})
+                                        WITH rec AS recipe, keyw
+                                        MATCH (rev:Review)-[:REVIEWS]->(recipe)
+                                        WITH recipe, sum(toInteger(rev.Rating)) AS SumRating, count(rev) AS NumRatings, keyw
+                                        WITH recipe, SumRating, NumRatings, SumRating / NumRatings AS AvgRating, keyw
+                                        MATCH (recipe)-[:CATEGORY_OF]->(c:Category)
+                                        WITH recipe, c as category, SumRating, NumRatings, AvgRating, keyw
+                                        MATCH (recipe)-[:USES_KEYWORD]->(k:Keyword)
+                                        RETURN DISTINCT keyw.Name as Keyword, recipe.Name as Name, category.Name as Category, category.CategoryID as CategoryID, collect({Name:k.Name, KeywordID:k.KeywordID}) as Keywords, recipe.URL as URL, recipe.RecipeID AS ID, SumRating, NumRatings, AvgRating ORDER BY AvgRating DESC, SumRating DESC, NumRatings DESC, Name ASC LIMIT ${lim}
+                                        `)
+
+            if (results.records.length > 0) {
+                let recipe_list = []
+                results.records.forEach(element => {
+                    recipe_list.push(
+                        {'recipe': {
+                            Name: element.get("Name"),
+                            Category: element.get("Category"),
+                            CategoryID: element.get("CategoryID"),
+                            Keywords: element.get("Keywords"),
+                            URL: element.get("URL"),
+                            ID: element.get("ID")
+                        },
+                        'SumRating': element.get("SumRating"),
+                        'NumRatings': element.get("NumRatings"),
+                        'AvgRating': element.get("AvgRating")
+                        });
+                });
+
+                return { 'Successful?':true, 'err': 'null', 'code':200, 'KeywordName':results.records[0].get('Keyword'), 'recipes': recipe_list}
+            } else {
+                return { 'Successful?':false, 'err': 'No results found', 'code':204, 'recipe':null}
+
+            }
+        } else {
+            console.log("Initialisation test returning False");
+            return { 'Successful?':false, 'err': 'DB  data not initialised (or marker not set.)', 'code':503, 'recipe':null}
+        }
+
+    } catch (err) {
+        console.log("Recipe search failing due to error:")
+        console.error(err);
+        return { 'Successful?':false, 'err': err};
+    } finally {
+        if (session) await session.close();
+        if (driver) await driver.close();
+    }
+}
+
 
 async function get_cbf_recommended(id, lim=20) {
     let driver;
@@ -270,9 +403,9 @@ async function get_cbf_recommended(id, lim=20) {
 
                     WITH Rs, Ro, KwCosineSim + IwCosineSim AS CosineSim
                     MATCH (Ro)-[:CATEGORY_OF]->(cat:Category)
-                    WITH Rs, Ro, CosineSim, cat.Name AS Category
+                    WITH Rs, Ro, CosineSim, cat
                     MATCH (Ro)-[:USES_KEYWORD]->(kw:Keyword)
-                    RETURN Rs, Ro.Name AS Name, Category, collect(kw.Name) AS Keywords, Ro.URL AS URL, Ro.RecipeID AS ID, CosineSim ORDER BY CosineSim DESC LIMIT ${lim}
+                    RETURN Rs, Ro.Name AS Name, cat.Name as Category, cat.CategoryID as CategoryID, collect({Name:kw.Name, KeywordID:kw.KeywordID}) as Keywords, Ro.URL AS URL, Ro.RecipeID AS ID, CosineSim ORDER BY CosineSim DESC LIMIT ${lim}
                     `);
 
                 if (results.records.length > 0) {
@@ -282,6 +415,7 @@ async function get_cbf_recommended(id, lim=20) {
                             {'recipe': {
                                 Name: element.get("Name"),
                                 Category: element.get("Category"),
+                                CategoryID: element.get("CategoryID"),
                                 Keywords: element.get("Keywords"),
                                 URL: element.get("URL"),
                                 ID: element.get("ID")
@@ -316,4 +450,4 @@ async function get_cbf_recommended(id, lim=20) {
 }
 
 
-module.exports = { test_ready, get_recipe_by_id, get_top_recipes, get_cbf_recommended };
+module.exports = { test_ready, get_recipe_by_id, get_top_recipes, get_cbf_recommended, get_top_in_cat, get_top_in_keyw };

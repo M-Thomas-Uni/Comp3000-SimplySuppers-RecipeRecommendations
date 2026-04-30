@@ -1,6 +1,6 @@
 const express = require('express');
 const { neo4j_startup, calculate_tf_weights_and_normals } = require('./neo4j_setup');
-const { test_ready, get_recipe_by_id, get_top_recipes, get_cbf_recommended } = require('./neo4j_operations');
+const { test_ready, get_recipe_by_id, get_top_recipes, get_cbf_recommended, get_top_in_cat, get_top_in_keyw } = require('./neo4j_operations');
 
 const app = express();
 const port = 9000;
@@ -45,14 +45,50 @@ app.get('/recipe/:id', async (req, res) => {
         console.error(`Error fetching recipe (${req.params.id}):`, err);
         res.sendStatus(500);
   }
-})
+});
 
-app.get('/toprecipes/:lim', async (req, res) => {
+app.get('/top/recipes/:lim', async (req, res) => {
   try {
     const lim = req.params.lim;
     const result = await get_top_recipes(lim);
     if (result['code'] == 200) {
        return res.json(result['recipes'])
+    } else if (result['code'] == 204) {
+        return res.sendStatus(204);
+    } else {
+      res.sendStatus(503);
+    }
+  }  catch (err) {
+        console.error(`Error fetching top recipes:`, err);
+        res.sendStatus(500);
+  }
+});
+
+app.get('/top/category/:id/:lim', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const lim = req.params.lim;
+    const result = await get_top_in_cat(id, lim);
+    if (result['code'] == 200) {
+       return res.json(result)
+    } else if (result['code'] == 204) {
+        return res.sendStatus(204);
+    } else {
+      res.sendStatus(503);
+    }
+  }  catch (err) {
+        console.error(`Error fetching top recipes:`, err);
+        res.sendStatus(500);
+  }
+});
+
+app.get('/top/keyword/:id/:lim', async (req, res) => {
+  try {
+    const id = req.params.id;
+    const lim = req.params.lim;
+    const result = await get_top_in_keyw(id, lim);
+    if (result['code'] == 200) {
+       return res.json(result)
     } else if (result['code'] == 204) {
         return res.sendStatus(204);
     } else {
