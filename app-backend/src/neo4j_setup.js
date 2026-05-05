@@ -205,15 +205,19 @@ async function calculate_tf_weights_and_normals() {
             await session.run(`
                 //Compute TF for Recipe -> Keyword
                 MATCH (r:Recipe)-[rel:USES_KEYWORD]->(k:Keyword)
+                CALL (r, rel, k) {
                 WITH r, count(rel) AS kCount, rel, k
                 SET rel.tf_weight = (1.0 / kCount) * k.idf
-                `);
+                } IN TRANSACTIONS OF 10000                
+              `);
             console.log("COMPLETE\n..TF for Recipe Ingredients");
             await session.run(`
                 //again, for ingredients
                 MATCH (r:Recipe)-[rel:CONTAINS]->(i:Ingredient)
+                CALL (r, rel, i) {
                 WITH r, count(rel) AS iCount, rel, i
                 SET rel.tf_weight = (1.0 / iCount) * i.idf
+                } IN TRANSACTIONS OF 10000 
                 `);
             console.log("COMPLETE\n..Calculating Recipe Normals for Keyword vectors");
             await session.run(`
