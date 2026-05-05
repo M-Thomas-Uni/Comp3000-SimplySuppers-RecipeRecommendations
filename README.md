@@ -25,11 +25,12 @@ From terminal/powershsell:
  - Run "bash"
  - Run "source rebuild.sh"
 
-<b>Troubleshooting
+<b>Troubleshooting</b></br>
 The App-Backend container is set to wait for the Database to become healthy before starting. In some cases, it might run out of patience before the database is ready.
 If you find the backend does not start, either run "source rebuild.sh" again, or manually press the start/restart button for the backend container in the Docker Desktop window.
 If you recieve issues relating to credentials, ensure you have the latest version of docker. You may need to restart the docker engine, and/or exit and re-enter the Bash console.
 If you recieve an error message relating to a file already existing or not existing, during container building, place an empty folder named "data" within the suppers-db/ folder, besides /import.
+
 ---
 
 ## Video Overview
