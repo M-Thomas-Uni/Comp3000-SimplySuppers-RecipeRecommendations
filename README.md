@@ -36,4 +36,4 @@ If you recieve an error message relating to a file already existing or not exist
 ## Video Overview
 The following is a link to a Youtube video. This is the video uploaded to the Pebblepad ePortfolio.
 
-[![IMAGE ALT TEXT HERE]()]()
+[![IMAGE ALT TEXT HERE](https://i3.ytimg.com/vi/goClQRwOEJM/hqdefault.jpg)](https://youtu.be/goClQRwOEJM)
