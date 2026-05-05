@@ -1,4 +1,0 @@
-/suppers-db/import/reviews_large.csv filter=lfs diff=lfs merge=lfs -text
-/suppers-db/import/recipes_large.csv filter=lfs diff=lfs merge=lfs -text
-suppers-db/import/reviews_large.csv filter=lfs diff=lfs merge=lfs -text
-suppers-db/import/recipes_large.csv filter=lfs diff=lfs merge=lfs -text
