@@ -208,7 +208,7 @@ async function calculate_tf_weights_and_normals() {
                 CALL (r, rel, k) {
                 WITH r, count(rel) AS kCount, rel, k
                 SET rel.tf_weight = (1.0 / kCount) * k.idf
-                } IN TRANSACTIONS OF 10000                
+                } IN TRANSACTIONS OF 10000 ROWS;              
               `);
             console.log("COMPLETE\n..TF for Recipe Ingredients");
             await session.run(`
@@ -217,7 +217,7 @@ async function calculate_tf_weights_and_normals() {
                 CALL (r, rel, i) {
                 WITH r, count(rel) AS iCount, rel, i
                 SET rel.tf_weight = (1.0 / iCount) * i.idf
-                } IN TRANSACTIONS OF 10000 
+                } IN TRANSACTIONS OF 10000 ROWS;
                 `);
             console.log("COMPLETE\n..Calculating Recipe Normals for Keyword vectors");
             await session.run(`
