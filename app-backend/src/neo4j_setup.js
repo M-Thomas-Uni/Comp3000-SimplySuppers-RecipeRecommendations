@@ -118,7 +118,8 @@ async function neo_startup() {
 
                                 } IN TRANSACTIONS OF 5000 ROWS`);
             console.log("Loaded Reviews.csv");
-
+            
+            /*
             console.log("Adding Images from Recipe_Images.csv");
             await session.run(`LOAD CSV WITH HEADERS FROM "file:///recipe_images.csv" AS row
                                 WITH row
@@ -131,6 +132,7 @@ async function neo_startup() {
                                 SET recipe.Image_URL = URL
                                 } IN TRANSACTIONS OF 5000 ROWS`);
             console.log("Loaded Recipe_Images.csv");
+            */
 
             console.log("Creating Category and Keyword IDs");
             await session.run(`MATCH (c:Category)
@@ -208,7 +210,7 @@ async function calculate_tf_weights_and_normals() {
                 CALL (r, rel, k) {
                 WITH r, count(rel) AS kCount, rel, k
                 SET rel.tf_weight = (1.0 / kCount) * k.idf
-                } IN TRANSACTIONS OF 10000 ROWS;              
+                } IN TRANSACTIONS OF 5000 ROWS;              
               `);
             console.log("COMPLETE\n..TF for Recipe Ingredients");
             await session.run(`
@@ -217,7 +219,7 @@ async function calculate_tf_weights_and_normals() {
                 CALL (r, rel, i) {
                 WITH r, count(rel) AS iCount, rel, i
                 SET rel.tf_weight = (1.0 / iCount) * i.idf
-                } IN TRANSACTIONS OF 10000 ROWS;
+                } IN TRANSACTIONS OF 5000 ROWS;
                 `);
             console.log("COMPLETE\n..Calculating Recipe Normals for Keyword vectors");
             await session.run(`
