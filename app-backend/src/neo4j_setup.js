@@ -35,7 +35,7 @@ async function neo_startup() {
             console.log("Created Constraints and Indexes");
 
             //Load Recipes
-            await session.run(`LOAD CSV WITH HEADERS FROM "file:///recipes.csv" AS row
+            await session.run(`LOAD CSV WITH HEADERS FROM "file:///recipes_large.csv" AS row
                                 WITH row
                                 CALL (row) {
 
@@ -49,7 +49,8 @@ async function neo_startup() {
                                     recipe.PrepTime = row.PrepTime,
                                     recipe.Description = row.Description,
                                     recipe.Servings = row.RecipeServings,
-                                    recipe.URL = "https://www.food.com/recipe/-" + id
+                                    recipe.URL = "https://www.food.com/recipe/-" + id,
+                                    recipe.Image_URL = row.Image
                                 
                                 WITH recipe, row, row.AuthorId AS id
                                 MERGE (author:RecipeAuthor {AuthorID:id})
@@ -62,29 +63,39 @@ async function neo_startup() {
                                 MERGE (c:Category {Name:category})
                                 MERGE (recipe)-[:CATEGORY_OF]-(c)
 
-                                WITH recipe, row, row.RecipeIngredientParts AS ingredient_parts, row.RecipeIngredientQuantities AS ingredient_quantities
-                                WITH recipe, row, split(ingredient_parts, ",") AS ingredients, split(ingredient_quantities, ",") AS quantities
-                                WITH recipe, row, ingredients, quantities, range(0, size(ingredients)-1) AS indexes
-
+                                WITH recipe, row, row.Ingredients AS ingredient_parts
+                                WITH recipe, row,
+                                    CASE WHEN ingredient_parts IS NULL OR ingredient_parts = "" 
+                                        THEN [] 
+                                        ELSE split(ingredient_parts, ";") 
+                                    END AS ingredients
+                                WITH recipe, row, ingredients,
+                                    CASE WHEN size(ingredients) = 0 
+                                        THEN [] 
+                                        ELSE range(0, size(ingredients)-1) 
+                                    END AS indexes
                                 UNWIND indexes AS index
-                                WITH recipe, row, trim(ingredients[index]) AS ingredient, trim(quantities[index]) AS quantity
-                                WHERE ingredient<>"" AND ingredient IS NOT NULL AND quantity<>"" AND quantity IS NOT NULL
+                                WITH recipe, row, trim(ingredients[index]) AS ingredient
+                                WHERE ingredient <> "" AND ingredient IS NOT NULL
                                 MERGE (i:Ingredient {Name:ingredient})
-                                MERGE (recipe)-[:CONTAINS {Quantity:quantity}]->(i)
+                                MERGE (recipe)-[:CONTAINS]->(i)
 
-                                WITH recipe, row, row.Keywords AS raw
-                                WITH recipe, split(row.Keywords, ",") AS keywords
-                                
+                                WITH recipe, row, row.Keywords AS kw
+                                WITH recipe, row,
+                                    CASE WHEN kw IS NULL OR kw = "" 
+                                        THEN [] 
+                                        ELSE split(kw, ";") 
+                                    END AS keywords
                                 UNWIND keywords AS keyword
                                 WITH recipe, trim(keyword) AS keyword
-                                WHERE keyword<>"" AND keyword IS NOT NULL
+                                WHERE keyword <> "" AND keyword IS NOT NULL
                                 MERGE (k:Keyword {Name:keyword})
                                 MERGE (recipe)-[:USES_KEYWORD]->(k)
                                 } IN TRANSACTIONS OF 5000 ROWS`);
             console.log("Loaded Recipes.csv");
 
             //Load Reviews
-            await session.run(`LOAD CSV WITH HEADERS FROM "file:///reviews.csv" AS row
+            await session.run(`LOAD CSV WITH HEADERS FROM "file:///reviews_large.csv" AS row
                                 WITH row
                                 CALL (row) {
 
