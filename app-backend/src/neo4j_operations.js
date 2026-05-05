@@ -314,7 +314,7 @@ async function get_cbf_recommended(id, lim=20) {
                     MATCH (Rs:Recipe{RecipeID:"${id}"})
                     WITH Rs
                     //Get Other
-                    MATCH (Ro:Recipe)
+                    MATCH (Rs)-[:USES_KEYWORD]->(:Keyword)<-[:USES_KEYWORD]-(Ro:Recipe)-[:CONTAINS]->(:Ingredient)<-[:CONTAINS]-(Rs)
                     WHERE Ro.RecipeID<>Rs.RecipeID
 
                     WITH Rs, Ro
