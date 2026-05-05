@@ -18,12 +18,12 @@ async function neo_startup() {
         if(initialised) {
             console.log("Database initialised, presuming data has already been loaded.");
 
-            calculate_tf_weights_and_normals();
+            await calculate_tf_weights_and_normals();
 
         } else {
             console.log("Database not initialised. Creating indexes then loading data.");
 
-            await session.run(`CREATE CONSTRAINT RecipeID IF NOT EXISTS FOR (r:Recipe) REQUIRE r.RecipeID IS UNIQUE, r.RecipeID IS :: INTEGER;`);
+            await session.run(`CREATE CONSTRAINT RecipeID IF NOT EXISTS FOR (r:Recipe) REQUIRE r.RecipeID IS UNIQUE;`);
             await session.run(`CREATE CONSTRAINT IngredientID IF NOT EXISTS FOR (i:Ingredient) REQUIRE i.IngredientID IS UNIQUE;`);
             await session.run(`CREATE CONSTRAINT ReviewID IF NOT EXISTS FOR (r:Review) REQUIRE r.ReviewID IS UNIQUE;`);
             await session.run(`CREATE CONSTRAINT ReviewAuthorID IF NOT EXISTS FOR (reva:ReviewAuthor) REQUIRE reva.AuthorID IS UNIQUE;`);
@@ -153,7 +153,7 @@ async function neo_startup() {
             await session.run(`MERGE (m:SetupFlag {flag:"SuppersDB_Initialised"})`);
             console.log("Set Initialised_SuppersDB Flag");
 
-            calculate_tf_weights_and_normals();
+            await calculate_tf_weights_and_normals();
 
         }
         
