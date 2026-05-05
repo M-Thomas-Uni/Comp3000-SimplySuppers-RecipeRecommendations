@@ -1,7 +1,7 @@
 html, body {
     height: 100%;
     margin: 0;
-    background-color: #f7eded;
+    background-color: #f2e9d7;
 }
 
 body {
@@ -11,4 +11,9 @@ body {
 
 main {
     flex: 1;   /* pushes footer down */
+}
+
+h3 {
+    padding-bottom: 10px;
+    padding-top: 5px;
 }
