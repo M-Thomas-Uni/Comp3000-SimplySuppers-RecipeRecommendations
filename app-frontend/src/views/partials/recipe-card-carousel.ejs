@@ -18,7 +18,7 @@
 }
 </style>
 
-<div id="top_recipes_carousel" class="carousel slide border rounded p-3" data-bs-ride="carousel">
+<div id="top_recipes_carousel" class="carousel slide border rounded p-3" data-bs-ride="carousel" data-bs-interval="6000">
     <div class="carousel-inner">
         <% for (let i = 0; i < recipes.length; i += 3) { %>
             <div class="carousel-item <%= i == 0 ? 'active' : '' %>">
